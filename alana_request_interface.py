@@ -7,7 +7,7 @@ import json
 import urllib2
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
-
+import json
 from datetime import datetime
 
 from mongodb_alana.history import History
@@ -17,6 +17,23 @@ BUCKET_URL = "http://localhost:5000"
 history = History(os.path.abspath('mongodb_alana/mongo_info.json'))
 ner = Ner_db(os.path.abspath('mongodb_alana/mongo_info.json'))
 
+
+
+#JSON thingy
+#-------------------------------------------------------------
+
+first = True
+data = {}
+data['session'] = []
+
+data2 = {
+   'name' : 'ACME',
+   'shares' : 100,
+   'price' : 542.23
+}
+
+
+#-------------------------------------------------------------
 def get_answer(question, session_id, conf_score):
     timestamp = datetime.now()
 
@@ -40,7 +57,7 @@ def get_answer(question, session_id, conf_score):
     # if news were selected (with news_id), save that to mt_newsAPI table
     if len(speech_output) > 3:
         history.update_news_id(session_id, speech_output[3])
-   
+    
     return speech_output[1], speech_output[2]
 
 def cli():
@@ -64,40 +81,60 @@ logger = logging.getLogger(__name__)
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
     """Send a message when the command /start is issued."""
-    update.message.reply_text('Hi!')
+    update.message.reply_text('Hi, I am Alana, a conversation agent that are developed on top of Amazon Alexa Challenge 2017 winner. Alana is not perfect so please do not abuse her and do follow along the context. I hope you will hava a good time with Alana PS.This is the original Alana that we aim to develop, the more up-to date Alana will be available soon\n\nDisclaimer: Your information will not be shared.')
 
 
 def help(bot, update):
     """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
+    update.message.reply_text('There is no help!')
+
 
 
 def echo(bot, update):
+    global first
+    
     """Echo the user message."""
+    chat_id = update.message.chat_id
     session_id = 'CLI-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     question = update.message.text
     answer = get_answer(question, session_id, '1.0')
-    update.message.reply_text(answer)
+    update.message.reply_text(answer[0])
+
+   # if(first == True):
+  #      data['session'].append({'Id': chat_id, 'turns':[]})
+ #       chat
+#        first = False
+#    data['session'][0]['turns'].append({'fuck':'you', 'u': '2','Id': chat_id})
+
+    data['session'].append({'ChatId': chat_id,'User': question, 'Alana':answer[0]})
+    with open('data.json', 'w') as f:
+        json.dump(data, f)
 
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
 
+def id(bot, update):
+    chat_id = update.message.chat_id
+    update.message.reply_text(update.message.chat_id)
+
 
 def main():
+    
+
     
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
     updater = Updater("548018861:AAFDFAbz4ypEr-blm5f68KucXCzoPRdNNcQ")
-
+   
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
-
+    dp.add_handler(CommandHandler("id", id))
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
 
@@ -111,6 +148,9 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
+    
+
+
     
 
 
